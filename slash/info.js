@@ -1,30 +1,37 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { EmbedBuilder } = require('discord.js');
+const { useMasterPlayer }       = require("discord-player")
+const { EmbedBuilder }          = require("discord.js")
+const Language                  = require("../strings.js")
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("info")
-        .setDescription("Displays info about the currently playing song"),
-    
-        run: async ({client, interaction}) => {
-            const queue = client.player.nodes.get(interaction.guildID)
-            
-            //Error Handling(there is no queue to get info from)
-            if (!queue) return await interaction.editReply("There are no songs in the queue")
-            
-            //Gets info and creates a progress bar
-            let bar = queue.createProgressBar({
-                queue: false,
-                length: 19
-            })
+    .setName(Language.info.command)
+    .setDescription(Language.info.description),
+    run: async ({ interaction }) => {
+        const player = useMasterPlayer()
+        const queue = player.nodes.get(interaction.guildId)
 
-            const song = queue.current
+        if (!queue){
+            return await interaction.editReply(Language.queue.nosongs)
+        } else {
+            try{
+                let bar = queue.node.createProgressBar()
 
-            await interaction.editReply({
-                embeds: [new EmbedBuilder()
-                .setThumbnail(song.thumbnail)
-                .setDescription('Currently Playing [${song.title}](${song.url})/n/n' + bar)
-            ],
-            })
-    },
+                const song = queue.currentTrack
+        
+                await interaction.editReply({
+                    embeds: [new EmbedBuilder()
+                        .setThumbnail(song.thumbnail)
+                        .setDescription(
+                        Language.queue.playing + `[${song.title}](${song.url})\n\n` +
+                        Language.song.duration + song.duration + `\n` +
+                        Language.song.requestedby + `<@${song.requestedBy.id}> \n\n` +
+                        bar)
+                    ]
+                })
+            } catch (e) {
+                return interaction.editReply(Language.system.error + e)
+            }
+        }
+    }
 }

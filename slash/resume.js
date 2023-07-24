@@ -1,19 +1,24 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { EmbedBuilder } = require('discord.js');
+const { useMasterPlayer }       = require("discord-player")
+const Language                  = require("../strings.js")
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("resume")
-        .setDescription("Resumes the music"),
-    
-        run: async ({client, interaction}) => {
-            const queue = client.player.nodes.get(interaction.guildID)
-            
-            //Error Handling(there is no queue to resume)
-            if (!queue) return await interaction.editReply("There are no songs in the queue")
-            
-            //Resumes music and sends a message
-            queue.setPaused(false)
-            await interaction.editReply("Music has been resumed! '/pause' to pause the music")
-    },
+    .setName(Language.resume.command)
+    .setDescription(Language.resume.description),
+    run: async ({ interaction }) => {
+        const player = useMasterPlayer()
+        const queue = player.nodes.get(interaction.guildId)
+
+        if (!queue){
+            return await interaction.editReply(Language.queue.nosongs)
+        } else {
+            try{
+                queue.node.resume()
+                await interaction.editReply(Language.resume.notify)
+            } catch (e) {
+                return interaction.editReply(Language.system.error + e)
+            }
+        }
+    }
 }

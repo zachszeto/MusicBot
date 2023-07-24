@@ -1,45 +1,51 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { EmbedBuilder } = require('discord.js');
+const { useMasterPlayer }       = require("discord-player")
+const { EmbedBuilder  }         = require("discord.js")
+const Language                  = require("../strings.js")
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("queue")
-        .setDescription("displays the current song queue")
-        .addNumberOption((option) => option.setName("page").setDescription("Page number of the queue").setMinValue(1)),
-
-        run: async ({ client, interaction}) => {
-            //Run only if there is a queue or the queue is playing
-            const queue = client.player.nodes.get(interaction.guildID)
-            if (!queue || !queue.playing){
-                return await interaction.editReply("There are no songs in the queue")
-            }
-
-            //Two constants that keep track of current page and total pages
-            const totalPages = Math.ceil(queue.tracks.length / 10) || 1
-            const page = (interaction.option.getNumber("page") || 1) - 1
-            
-            //Error Handling (If they enter a page number that is too big)
-            if (page > totalPages)
-                return await interaction.editReply('Invalid Page. There are only a total of ${totalPages} pages of songs')
-
-            const queueString = queue.tracks.slice(page * 10, page * 10 + 10).map((song, i) => {
-                return '**${page * 10 + i + 1}.** \'[${song.duration}]\' ${song.title} -- <@${song.requestedBy.id}>'
-            }).join("/n")
-
-            const currentSong = queue.currentSong
-            
-            //Shows song information when playing
-            await interaction.editReply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setDescription('**Currently Playing**\n' + (currentSong ? '\'[${currentSong.duration}]\' ${currentSong.title} -- <@${currentSong.requestedBy.id}>' : "None") + 
-                            '/n/n**Queue**/n${queueString}'
-                        )
-                        .setFooter({
-                            test: 'Page ${page + 1} of ${totalPages}'
-                        })
-                        .setThumnail(currentSong.thumbnail)
-                ]
-            })
+    .setName(Language.queue.command)
+    .setDescription(Language.queue.description)
+    .addNumberOption((option) => option.setName(Language.queue.name).setDescription(Language.queue.option).setMinValue(1)),
+    run: async ({ interaction }) => {
+        const player = useMasterPlayer()
+        const queue = player.nodes.get(interaction.guildId)
+        if (!queue || !queue.node.isPlaying()){
+            return await interaction.editReply(Language.queue.nosongs)
         }
+
+        const page_total = Math.ceil(queue.tracks.size / 10) || 1
+        const page = (interaction.options.getNumber(Language.queue.name) || 1) - 1
+
+        if (page > page_total) {
+            return await interaction.editReply(Language.queue.nopage)
+        }else{
+            try{
+                const song_page = queue.tracks.toArray().slice(page * 10, page * 10 + 10).map((song, i) => {
+                    return `**${page * 10 + i +1}.** \`[${song.duration}]\` ${song.title} -- <@${song.requestedBy.id}>`
+                }).join("\n")
+        
+                const currentSong = queue.currentTrack
+        
+                await interaction.editReply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setDescription(`**` + Language.queue.playing + `**\n` +
+                            (currentSong ? `\`[${currentSong.duration}]\` ${currentSong.title} -- <@${currentSong.requestedBy.id}>` : Language.queue.nosongs) +
+                            `\n\n**`+ Language.queue.title + `**\n${song_page}`
+                            )
+                            .setFooter({
+                                text: Language.queue.footer + (page + 1) + Language.queue.footer2 + page_total
+                            })
+                            .setThumbnail(currentSong.thumbnail)
+                    ]
+                })
+            }catch (e) {
+                return interaction.followUp(Language.system.error + e)
+            }
+        }
+
+
+    }
 }

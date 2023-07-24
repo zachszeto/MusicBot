@@ -1,25 +1,32 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { EmbedBuilder } = require('discord.js');
+const { useMasterPlayer }       = require("discord-player")
+const { EmbedBuilder }          = require("discord.js")
+const Language                  = require("../strings.js")
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("skip")
-        .setDescription("Skips the current song"),
-    
-        run: async ({client, interaction}) => {
-            const queue = client.player.nodes.get(interaction.guildID)
-            
-            //Error Handling(there is no queue to skip)
-            if (!queue) return await interaction.editReply("There are no songs in the queue")
-            
-            //Skips song and sends a message
-            const currentSong= queue.current
+    .setName(Language.skip.command)
+    .setDescription(Language.skip.description),
+    run: async ({ interaction }) => {
+        const player = useMasterPlayer()
+        const queue = player.nodes.get(interaction.guildId)
 
-            queue.skip()
-            await interaction.editReply({
-                embeds:[
-                    new EmbedBuilder().setDescription('${currentSong.title} has been skipped!').setThumbnail(currentSong.thumbnail)
-                ]
-            })
-    },
+        if (!queue){
+            return await interaction.editReply(Language.queue.nosongs)
+        } else {
+            try{
+                const song  = queue.currentTrack
+
+                queue.node.skip()
+                await interaction.editReply({
+                    embeds: [new EmbedBuilder()
+                        .setDescription(Language.skip.notify)
+                        .setThumbnail(song.thumbnail)
+                    ]
+                })
+            } catch (e) {
+                return interaction.editReply(Language.system.error + e)
+            }
+        }
+    }
 }
