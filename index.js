@@ -11,8 +11,8 @@ dotenv.config()
 const TOKEN     = process.env.TOKEN
 const LOAD_SLASH= process.argv[2] == "load"
 
-const CLIENT_ID = "1132736632781537320"
-const GUILD_ID = "1039691009480740934"
+const CLIENT_ID = "XXXXXXXXXXXXXXXXX"
+const GUILD_ID = "XXXXXXXXXXXXXXXXX"
 
 const client = new Discord.Client({
     intents: [
